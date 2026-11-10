@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crosshair Overlay PC — Custom Crosshair Overlay for Windows Games</title>
+<meta name="description" content="Crosshair Overlay PC: custom crosshair overlays for PC games. PNG/SVG crosshair packs, hotkey toggle, per-game profiles, DPI-aware scaling, transparency and outline tuning.">
+<style>
+  :root{
+    --bg-0:#070a14;
+    --bg-1:#0b1024;
+    --bg-2:#111634;
+    --accent:#6d8bff;
+    --accent-2:#a35bff;
+    --accent-3:#31d0c6;
+    --text:#e8ecff;
+    --muted:#9aa4c7;
+    --card:rgba(255,255,255,0.045);
+    --card-border:rgba(255,255,255,0.09);
+    --glass:rgba(12,17,38,0.55);
+    --radius:16px;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+
+  html{scroll-behavior:smooth;}
+
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(1100px 700px at 12% -8%, rgba(109,139,255,0.20), transparent 60%),
+      radial-gradient(900px 620px at 88% 4%, rgba(163,91,255,0.16), transparent 62%),
+      radial-gradient(800px 600px at 50% 110%, rgba(49,208,198,0.10), transparent 65%),
+      linear-gradient(165deg, var(--bg-0) 0%, var(--bg-1) 45%, #0a0f22 72%, #060912 100%);
+    background-attachment:fixed;
+    min-height:100vh;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  /* subtle grid texture */
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
+    background-size:56px 56px;
+    mask-image:radial-gradient(circle at 50% 20%, rgba(0,0,0,0.9), transparent 75%);
+    z-index:0;
+  }
+
+  .wrap{
+    width:min(1120px, 92vw);
+    margin:0 auto;
+    position:relative;
+    z-index:1;
+  }
+
+  /* ---------- NAV ---------- */
+  .nav-outer{
+    position:sticky;
+    top:0;
+    z-index:50;
+    padding:14px 0;
+  }
+  .nav{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:18px;
+    padding:12px 20px;
+    border-radius:18px;
+    background:var(--glass);
+    border:1px solid rgba(255,255,255,0.10);
+    backdrop-filter:blur(18px) saturate(160%);
+    -webkit-backdrop-filter:blur(18px) saturate(160%);
+    box-shadow:0 12px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.07);
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight:800;
+    font-size:1.02rem;
+    letter-spacing:0.2px;
+    white-space:nowrap;
+  }
+  .brand-mark{
+    width:30px;height:30px;
+    border-radius:9px;
+    display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    box-shadow:0 0 18px rgba(109,139,255,0.55);
+    font-size:0.95rem;
+    flex:0 0 auto;
+  }
+  .brand span.grad{
+    background:linear-gradient(90deg,#c6d2ff,#8fa6ff 45%,#c79bff);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .nav-links{
+    display:flex;
+    align-items:center;
+    gap:26px;
+    font-size:0.92rem;
+  }
+  .nav-links a{
+    color:var(--muted);
+    text-decoration:none;
+    font-weight:500;
+    transition:color .2s ease;
+    position:relative;
+  }
+  .nav-links a::after{
+    content:"";
+    position:absolute;
+    left:0;right:0;bottom:-6px;
+    height:2px;
+    border-radius:2px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    transform:scaleX(0);
+    transform-origin:left;
+    transition:transform .25s ease;
+  }
+  .nav-links a:hover{color:var(--text);}
+  .nav-links a:hover::after{transform:scaleX(1);}
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    border-radius:12px;
+    font-weight:700;
+    font-size:0.93rem;
+    text-decoration:none;
+    padding:12px 22px;
+    border:1px solid transparent;
+    cursor:pointer;
+    transition:transform .18s ease, box-shadow .25s ease, background .25s ease, border-color .25s ease;
+    white-space:nowrap;
+  }
+  .btn-primary{
+    color:#fff;
+    background:linear-gradient(135deg,#5b7cff 0%,#8b5cff 55%,#a35bff 100%);
+    box-shadow:0 10px 28px rgba(109,139,255,0.38), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .btn-primary:hover{
+    transform:translateY(-2px);
+    box-shadow:0 16px 40px rgba(129,110,255,0.55), inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+  .btn-ghost{
+    color:var(--text);
+    background:rgba(255,255,255,0.045);
+    border-color:rgba(255,255,255,0.16);
+    backdrop-filter:blur(8px);
+  }
+  .btn-ghost:hover{
+    transform:translateY(-2px);
+    background:rgba(255,255,255,0.09);
+    border-color:rgba(255,255,255,0.30);
+  }
+  .nav .btn{padding:10px 18px;font-size:0.88rem;}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    padding:74px 0 26px;
+    text-align:center;
+  }
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
+    padding:7px 16px;
+    border-radius:999px;
+    font-size:0.78rem;
+    font-weight:700;
+    letter-spacing:0.09em;
+    text-transform:uppercase;
+    color:#b9c6ff;
+    background:rgba(109,139,255,0.10);
+    border:1px solid rgba(109,139,255,0.35);
+    box-shadow:0 0 24px rgba(109,139,255,0.18), inset 0 0 18px rgba(109,139,255,0.06);
+  }
+  .pill .dot{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--accent-3);
+    box-shadow:0 0 10px var(--accent-3);
+    animation:pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:1;transform:scale(1);}
+    50%{opacity:.45;transform:scale(.8);}
+  }
+
+  h1{
+    margin:26px auto 0;
+    font-size:clamp(2.1rem, 5.6vw, 3.9rem);
+    line-height:1.08;
+    letter-spacing:-0.025em;
+    font-weight:900;
+    max-width:16ch;
+    background:linear-gradient(100deg,#ffffff 0%,#c7d3ff 34%,#8fa6ff 58%,#c79bff 82%,#7fe9df 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    text-shadow:0 0 60px rgba(109,139,255,0.18);
+  }
+  .hero p.lead{
+    margin:22px auto 0;
+    max-width:640px;
+    color:var(--muted);
+    font-size:clamp(0.98rem, 1.7vw, 1.12rem);
+  }
+  .hero-actions{
+    margin-top:34px;
+    display:flex;
+    gap:14px;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+  .hero-actions .btn{padding:15px 30px;font-size:1rem;}
+
+  .stats{
+    margin:46px auto 0;
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0,1fr));
+    gap:14px;
+    max-width:840px;
+  }
+  .stat{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:16px 12px;
+    backdrop-filter:blur(10px);
+    transition:transform .2s ease, border-color .2s ease;
+  }
+  .stat:hover{transform:translateY(-3px);border-color:rgba(109,139,255,0.4);}
+  .stat .val{
+    font-weight:800;
+    font-size:1.08rem;
+    background:linear-gradient(90deg,#dbe3ff,#9db1ff);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    white-space:nowrap;
+  }
+  .stat .lbl{
+    display:block;
+    margin-top:3px;
+    font-size:0.72rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:#7f8ab0;
+    font-weight:600;
+  }
+
+  /* ---------- SECTION HEADS ---------- */
+  section{padding:78px 0 0;}
+  .sec-head{text-align:center;margin-bottom:44px;}
+  .sec-kicker{
+    font-size:0.75rem;
+    font-weight:800;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:#8290c9;
+  }
+  h2{
+    margin-top:10px;
+    font-size:clamp(1.55rem, 3.4vw, 2.3rem);
+    font-weight:850;
+    letter-spacing:-0.02em;
+    background:linear-gradient(95deg,#ffffff,#c3cfff 60%,#b79bff);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .sec-head p{
+    margin:12px auto 0;
+    max-width:560px;
+    color:var(--muted);
+    font-size:0.97rem;
+  }
+
+  /* ---------- FEATURES ---------- */
+  .features{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:20px;
+  }
+  .card{
+    position:relative;
+    background:linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+    border:1px solid var(--card-border);
+    border-radius:var(--radius);
+    padding:28px 24px 26px;
+    overflow:hidden;
+    backdrop-filter:blur(12px);
+    transition:transform .22s ease, box-shadow .3s ease, border-color .25s ease;
+  }
+  .card::before{
+    content:"";
+    position:absolute;
+    top:0;left:0;right:0;
+    height:3px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2),var(--accent-3));
+    opacity:0.85;
+  }
+  .card:hover{
+    transform:translateY(-7px);
+    border-color:rgba(139,124,255,0.42);
+    box-shadow:0 22px 46px rgba(0,0,0,0.5), 0 0 0 1px rgba(139,124,255,0.12), 0 0 44px rgba(109,139,255,0.16);
+  }
+  .card .icon{
+    width:48px;height:48px;
+    display:grid;place-items:center;
+    font-size:1.42rem;
+    border-radius:13px;
+    background:rgba(109,139,255,0.11);
+    border:1px solid rgba(109,139,255,0.26);
+    margin-bottom:18px;
+    box-shadow:inset 0 0 20px rgba(109,139,255,0.10);
+  }
+  .card h3{
+    font-size:1.04rem;
+    font-weight:800;
+    letter-spacing:-0.01em;
+    margin-bottom:9px;
+  }
+  .card p{
+    color:var(--muted);
+    font-size:0.9rem;
+    line-height:1.62;
+  }
+
+  /* ---------- HOW IT WORKS ---------- */
+  .steps{
+    position:relative;
+    max-width:700px;
+    margin:0 auto;
+    padding-left:38px;
+  }
+  .steps::before{
+    content:"";
+    position:absolute;
+    left:15px;
+    top:14px;
+    bottom:14px;
+    width:2px;
+    border-radius:2px;
+    background:linear-gradient(180deg,var(--accent),var(--accent-2) 55%,rgba(49,208,198,0.65));
+    box-shadow:0 0 16px rgba(109,139,255,0.55);
+  }
+  .step{
+    position:relative;
+    padding:0 0 34px 0;
+  }
+  .step:last-child{padding-bottom:0;}
+  .step .num{
+    position:absolute;
+    left:-38px;
+    top:-2px;
+    width:32px;height:32px;
+    border-radius:50%;
+    display:grid;place-items:center;
+    font-weight:800;
+    font-size:0.86rem;
+    color:#fff;
+    background:linear-gradient(135deg,#5b7cff,#a35bff);
+    box-shadow:0 0 0 5px rgba(10,15,34,0.95), 0 0 22px rgba(109,139,255,0.6);
+  }
+  .step h3{font-size:1.05rem;font-weight:800;margin-bottom:6px;}
+  .step p{color:var(--muted);font-size:0.93rem;max-width:56ch;}
+
+  /* ---------- FAQ ---------- */
+  .faq{
+    max-width:780px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  details{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    overflow:hidden;
+    backdrop-filter:blur(10px);
+    transition:border-color .25s ease, background .25s ease;
+  }
+  details[open]{
+    border-color:rgba(109,139,255,0.42);
+    background:rgba(109,139,255,0.07);
+  }
+  summary{
+    list-style:none;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    padding:18px 20px;
+    font-weight:700;
+    font-size:0.96rem;
+    user-select:none;
+  }
+  summary::-webkit-details-marker{display:none;}
+  summary .plus{
+    flex:0 0 auto;
+    width:26px;height:26px;
+    display:grid;place-items:center;
+    font-size:1.15rem;
+    font-weight:600;
+    line-height:1;
+    color:#aab6e8;
+    border-radius:8px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.10);
+    transition:transform .28s ease, color .25s ease, background .25s ease;
+  }
+  details[open] summary .plus{
+    transform:rotate(45deg);
+    color:#fff;
+    background:linear-gradient(135deg,#5b7cff,#a35bff);
+    border-color:transparent;
+  }
+  details .answer{
+    padding:0 20px 20px;
+    color:var(--muted);
+    font-size:0.92rem;
+    line-height:1.65;
+    max-width:66ch;
+  }
+
+  /* ---------- CTA BANNER ---------- */
+  .cta-banner{
+    position:relative;
+    margin-top:78px;
+    border-radius:24px;
+    overflow:hidden;
+    padding:58px 32px;
+    text-align:center;
+    background:linear-gradient(150deg, rgba(91,124,255,0.22), rgba(163,91,255,0.16) 55%, rgba(49,208,198,0.10));
+    border:1px solid rgba(139,124,255,0.35);
+    box-shadow:0 30px 70px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.10);
+  }
+  .cta-banner::before{
+    content:"";
+    position:absolute;
+    width:640px;height:640px;
+    left:50%;top:50%;
+    transform:translate(-50%,-50%);
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(109,139,255,0.40) 0%, rgba(163,91,255,0.18) 40%, transparent 70%);
+    pointer-events:none;
+  }
+  .cta-banner > *{position:relative;z-index:1;}
+  .cta-banner h2{font-size:clamp(1.6rem, 3.6vw, 2.4rem);}
+  .cta-banner p{
+    margin:14px auto 0;
+    max-width:520px;
+    color:#c2cbf0;
+    font-size:0.98rem;
+  }
+  .cta-banner .btn{margin-top:28px;padding:15px 34px;font-size:1rem;}
+
+  /* ---------- FOOTER ---------- */
+  footer{
+    margin-top:70px;
+    border-top:1px solid rgba(255,255,255,0.08);
+    padding:30px 0 44px;
+  }
+  .foot{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:18px;
+    flex-wrap:wrap;
+    font-size:0.86rem;
+    color:#7f8ab0;
+  }
+  .foot a{
+    color:#b5c0ea;
+    text-decoration:none;
+    font-weight:600;
+    transition:color .2s ease;
+  }
+  .foot a:hover{color:#fff;}
+  .foot .brand-mini{
+    display:flex;align-items:center;gap:9px;
+    color:#a9b4da;font-weight:700;
+  }
+  .foot .brand-mini .brand-mark{width:24px;height:24px;font-size:0.75rem;border-radius:7px;}
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width:960px){
+    .features{grid-template-columns:repeat(2, minmax(0,1fr));}
+  }
+  @media (max-width:640px){
+    .nav-links{display:none;}
+    .nav{padding:10px 14px;border-radius:14px;}
+    .nav .btn{padding:9px 14px;font-size:0.82rem;}
+    .brand{font-size:0.92rem;}
+    .hero{padding-top:48px;}
+    .hero-actions .btn{flex:1 1 100%;padding:14px 20px;}
+    .stats{grid-template-columns:repeat(2, minmax(0,1fr));gap:10px;}
+    .features{grid-template-columns:1fr;}
+    section{padding-top:60px;}
+    .steps{padding-left:32px;}
+    .step .num{left:-32px;width:28px;height:28px;font-size:0.78rem;}
+    .steps::before{left:13px;}
+    .cta-banner{padding:44px 20px;border-radius:18px;}
+    .foot{flex-direction:column;align-items:flex-start;gap:12px;}
+  }
+</style>
+</head>
+<body>
+
+  <!-- ================= NAV ================= -->
+  <div class="nav-outer">
+    <div class="wrap">
+      <nav class="nav">
+        <div class="brand">
+          <span class="brand-mark">✛</span>
+          <span>Crosshair <span class="grad">Overlay PC</span></span>
+        </div>
+        <div class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#how-it-works">How it works</a>
+          <a href="#faq">FAQ</a>
+        </div>
+        <a class="btn btn-primary" href="https://gitscore.cc">Download</a>
+      </nav>
+    </div>
+  </div>
+
+  <!-- ================= HERO ================= -->
+  <header class="hero">
+    <div class="wrap">
+      <div class="pill"><span class="dot"></span> crosshair-overlay-pc</div>
+
+      <h1>Custom Crosshair Overlay for PC Games</h1>
+
+      <p class="lead">
+        Drop a pixel-perfect crosshair on top of any Windows game. Swap PNG/SVG
+        crosshair packs, toggle with a hotkey, save per-game profiles, and fine-tune
+        DPI-aware scaling, transparency and outlines — all from a lightweight overlay.
+      </p>
+
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="https://gitscore.cc">⬇ Download for Windows</a>
+        <a class="btn btn-ghost" href="https://gitscore.cc">★ View on GitHub</a>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><span class="val">120K+</span><span class="lbl">Downloads</span></div>
+        <div class="stat"><span class="val">v2.4.1</span><span class="lbl">Latest version</span></div>
+        <div class="stat"><span class="val">Windows 10 / 11</span><span class="lbl">Platform</span></div>
+        <div class="stat"><span class="val">Free &amp; open source</span><span class="lbl">License</span></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= FEATURES ================= -->
+  <section id="features">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="sec-kicker">Features</div>
+        <h2>Everything a crosshair needs</h2>
+        <p>Built for players who want full control over the reticle without touching game files.</p>
+      </div>
+
+      <div class="features">
+        <article class="card">
+          <div class="icon">🖼️</div>
+          <h3>PNG / SVG Crosshair Packs</h3>
+          <p>Load ready-made crosshair packs or your own PNG and SVG files. Vector assets stay razor-sharp at every resolution and scale.</p>
+        </article>
+
+        <article class="card">
+          <div class="icon">⌨️</div>
+          <h3>Hotkey Toggle</h3>
+          <p>Show or hide the overlay instantly with a global hotkey. Bind any key combo and switch crosshairs mid-match without alt-tabbing.</p>
+        </article>
+
+        <article class="card">
+          <div class="icon">🎯</div>
+          <h3>Per-Game Profiles</h3>
+          <p>Each game gets its own crosshair, position, size and color. Profiles auto-apply when the matching process launches.</p>
+        </article>
+
+        <article class="card">
+          <div class="icon">📐</div>
+          <h3>DPI-Aware Scaling</h3>
+          <p>Crosshairs stay the same on-screen size across monitors and DPI settings, so your aim feels consistent on every setup.</p>
+        </article>
+
+        <article class="card">
+          <div class="icon">🎚️</div>
+          <h3>Transparency Tuning</h3>
+          <p>Dial opacity from fully solid to barely-there. Blend the crosshair into bright scenes without losing the center point.</p>
+        </article>
+
+        <article class="card">
+          <div class="icon">🖊️</div>
+          <h3>Outline Control</h3>
+          <
